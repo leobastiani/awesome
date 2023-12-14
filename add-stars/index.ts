@@ -44,6 +44,11 @@ if (!matches) {
 
 let newContent = fileContent;
 
+const writer = fastq.promise(async function (s: string) {
+  newContent = s;
+  await Bun.write(process.argv[2], s);
+}, 1);
+
 const queue = fastq.promise(async function (s: string) {
   const [, name, url] = s.match(myRegex)!;
   if (!url.includes("github.com")) {
@@ -59,7 +64,7 @@ const queue = fastq.promise(async function (s: string) {
     ".stargazers_count",
   ]);
   const newTag = `[${name} ⭐️ ${stars}](${url})`;
-  newContent = newContent.replaceAll(s, newTag);
+  await writer.push(newContent.replaceAll(s, newTag));
 }, 8);
 
 for (const match of matches!) {
@@ -67,5 +72,4 @@ for (const match of matches!) {
 }
 
 await queue.drained();
-
-await Bun.write(process.argv[2], newContent);
+await writer.drained();
