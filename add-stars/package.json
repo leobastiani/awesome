@@ -9,6 +9,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "execa": "^8.0.1",
     "fastq": "^1.15.0",
     "super-expressive": "^2.0.0"
   }
