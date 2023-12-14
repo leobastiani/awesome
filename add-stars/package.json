@@ -1,0 +1,15 @@
+{
+  "name": "add-stars",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "fastq": "^1.15.0",
+    "super-expressive": "^2.0.0"
+  }
+}

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+cd "$(dirname "$0")"
+cd ..
+
+set -euo pipefail
+IFS=$'\n\t'
+
+set -x
+
+url=https://raw.githubusercontent.com/avelino/awesome-go/main/README.md
+
+curl -o awesome/avelino/awesome-go/README.md "$url"
