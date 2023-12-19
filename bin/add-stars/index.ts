@@ -7,7 +7,18 @@ import { execa } from "execa";
 import fastq from "fastq";
 import SuperExpressive from "super-expressive";
 
-const myRegexSE = SuperExpressive()
+function toRegex(se: SuperExpressive) {
+  return {
+    regex: se.toRegex(),
+    regexG: se.allowMultipleMatches.toRegex(),
+    se,
+  };
+}
+
+const {
+  regex: myRegex,
+  regexG: myRegexG,
+} = toRegex(SuperExpressive()
   .assertNotBehind.string("[!")
   .end()
   .string("[")
@@ -19,10 +30,7 @@ const myRegexSE = SuperExpressive()
   .optional.string("s")
   .string("://")
   .zeroOrMoreLazy.anyChar.end()
-  .string(")");
-const myRegexGSE = myRegexSE.allowMultipleMatches;
-const myRegex = myRegexSE.toRegex();
-const myRegexG = myRegexGSE.toRegex();
+  .string(")"));
 
 const repoRegex = SuperExpressive()
   .string("github.com/")
@@ -36,7 +44,10 @@ const repoRegex = SuperExpressive()
 console.log("myRegex:", myRegex);
 
 console.log("process.argv:", process.argv);
-const fileContent = await Bun.file(process.argv[2]).text();
+
+const [, , filePath] = process.argv;
+
+const fileContent = await Bun.file(filePath).text();
 const matches = fileContent.match(myRegexG);
 if (!matches) {
   process.exit(0);
@@ -44,13 +55,23 @@ if (!matches) {
 
 let newContent = fileContent;
 
-const writer = fastq.promise(async function (s: string) {
-  newContent = s;
-  await Bun.write(process.argv[2], s);
-}, 1);
+const writer = fastq.promise(async function (
+  transform: (content: string) => string
+) {
+  newContent = transform(newContent);
+  await Bun.write(filePath, newContent);
+},
+1);
 
-const queue = fastq.promise(async function (s: string) {
-  const [, name, url] = s.match(myRegex)!;
+const queue = fastq.promise(async function ({
+  name,
+  url,
+  content,
+}: {
+  name: string;
+  url: string;
+  content: string;
+}) {
   if (!url.includes("github.com")) {
     return;
   }
@@ -64,11 +85,17 @@ const queue = fastq.promise(async function (s: string) {
     ".stargazers_count",
   ]);
   const newTag = `[${name} ⭐️ ${stars}](${url})`;
-  await writer.push(newContent.replaceAll(s, newTag));
-}, 8);
+  await writer.push((fileContent) => fileContent.replaceAll(content, newTag));
+},
+8);
 
 for (const match of matches!) {
-  queue.push(match);
+  const [, name, url] = match.match(myRegex)!;
+  queue.push({
+    name,
+    url,
+    content: match,
+  });
 }
 
 await queue.drained();
