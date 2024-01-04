@@ -6,12 +6,12 @@ cd ..
 set -euo pipefail
 IFS=$'\n\t'
 
-set -x
-
 url=$1
+bin/download "$url"
 
 IFS="/" read -r -a parts <<<"$url"
 output_dir="awesome/${parts[3]}/${parts[4]}"
 output=$output_dir/README.md
-mkdir -p "$output_dir"
-curl -o "$output" "$url"
+
+cd bin/add-stars
+bun index.ts ../../"$output"

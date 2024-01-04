@@ -63,6 +63,7 @@ const writer = fastq.promise(async function (
 },
 1);
 
+let i = 0;
 const queue = fastq.promise(async function ({
   name,
   url,
@@ -76,6 +77,8 @@ const queue = fastq.promise(async function ({
     return;
   }
   const [, username, repoName] = url.match(repoRegex)!;
+  i++;
+  console.log("i:", i)
   const { stdout: stars } = await execa("gh", [
     "api",
     `repos/${username}/${repoName}`,
@@ -89,6 +92,7 @@ const queue = fastq.promise(async function ({
 },
 8);
 
+console.log("matches.length:", matches.length)
 for (const match of matches!) {
   const [, name, url] = match.match(myRegex)!;
   queue.push({
