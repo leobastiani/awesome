@@ -3,9 +3,9 @@
 // process.chdir(import.meta.dir)
 // process.chdir('..')
 
-import { execa } from "execa";
 import fastq from "fastq";
 import SuperExpressive from "super-expressive";
+import { $ } from "bun";
 
 function toRegex(se: SuperExpressive) {
   return {
@@ -15,22 +15,21 @@ function toRegex(se: SuperExpressive) {
   };
 }
 
-const {
-  regex: myRegex,
-  regexG: myRegexG,
-} = toRegex(SuperExpressive()
-  .assertNotBehind.string("[!")
-  .end()
-  .string("[")
-  .capture.oneOrMoreLazy.anythingButChars("[]")
-  .end()
-  .string("]")
-  .string("(")
-  .capture.string("http")
-  .optional.string("s")
-  .string("://")
-  .zeroOrMoreLazy.anyChar.end()
-  .string(")"));
+const { regex: myRegex, regexG: myRegexG } = toRegex(
+  SuperExpressive()
+    .assertNotBehind.string("[!")
+    .end()
+    .string("[")
+    .capture.oneOrMoreLazy.anythingButChars("[]")
+    .end()
+    .string("]")
+    .string("(")
+    .capture.string("http")
+    .optional.string("s")
+    .string("://")
+    .zeroOrMoreLazy.anyChar.end()
+    .string(")")
+);
 
 const repoRegex = SuperExpressive()
   .string("github.com/")
@@ -78,21 +77,16 @@ const queue = fastq.promise(async function ({
   }
   const [, username, repoName] = url.match(repoRegex)!;
   i++;
-  console.log("i:", i)
-  const { stdout: stars } = await execa("gh", [
-    "api",
-    `repos/${username}/${repoName}`,
-    "--cache",
-    `${24 * 7}h`,
-    "--jq",
-    ".stargazers_count",
-  ]);
-  const newTag = `[${name} ⭐️ ${stars}](${url})`;
+  console.log("i:", i);
+  const stars = await $`gh api ${`repos/${username}/${repoName}`} --cache ${`${
+    24 * 7
+  }h`} --jq .stargazers_count`.text();
+  const newTag = `[${name} ⭐️ ${stars.trim()}](${url})`;
   await writer.push((fileContent) => fileContent.replaceAll(content, newTag));
 },
 8);
 
-console.log("matches.length:", matches.length)
+console.log("matches.length:", matches.length);
 for (const match of matches!) {
   const [, name, url] = match.match(myRegex)!;
   queue.push({
